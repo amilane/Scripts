@@ -47,17 +47,13 @@ def groupByTag4(gList):
 		gSG = [[x for x in g] for k,g in groupby(sG, lambda e: e.LookupParameter('TagCode4').AsString())]
 		gTag += gSG
 	return gTag
-'''
-# не нужно, т.к. ADSK_Предел огнестойкости - параметр типа
-def groupByFire(gList):
-	#группировка по огнестойкости для арматуры воздуховодов
-	gFire = []
-	for g in gList:
-		sG = sorted(g, key = lambda e: e.LookupParameter('ADSK_Предел огнестойкости').AsString())
-		gSG = [[x for x in g] for k,g in groupby(sG, lambda e: e.LookupParameter('ADSK_Предел огнестойкости').AsString())]
-		gFire += gSG
-	return gFire
-'''
+
+def groupByTag3(gList):
+	# группировка по размерам TagCode3
+	sList = sorted(gList, key = lambda g: g[0].LookupParameter('TagCode3').AsString())
+	gList2 = [[x for x in g] for k,g in groupby(sList, lambda g: g[0].LookupParameter('TagCode3').AsString())]
+	return gList2
+
 def getUsedTag5(gList):
 	used = list(set([int(e.LookupParameter('TagCode5').AsString()) for g in gList for e in g if e.LookupParameter('TagCode5').AsString() not in NONELIST]))
 	if used:
@@ -75,84 +71,86 @@ pipeAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Pip
 # оборудование
 equipment = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements()
 
+
 gTerminal = groupBySize(groupByFam(terminal))
 gDuctAcc = groupBySize(groupByFam(ductAccessory))
 gPipeAcc = groupBySize(groupByFam(pipeAccessory))
 gEquip = groupByFam(equipment)
 
 allGroups = gTerminal + gDuctAcc + gPipeAcc + gEquip
+allGroupsTag3 = groupByTag3(allGroups)
 
 
-
-USEDCode5 = getUsedTag5(gTerminal)
 
 t = Transaction(doc, 'Setparameter')
 t.Start()
-for g in allGroups:
-	# нумерация 0001, 0002, 0003
-	taggedElem = filter(lambda e: e.LookupParameter('TagCode5').AsString() not in NONELIST, g)
-	if taggedElem:
-		tag5Value = taggedElem[0].LookupParameter('TagCode5').AsString()
-	else:
-		i = 1
-		while i < max(USEDCode5):
-			if i not in USEDCode5:
-				tv = i
-				USEDCode5.append(tv)
-				break
-			i += 1
+for group in allGroupsTag3:
+	USEDCode5 = getUsedTag5(group)
+	for g in group:
+		# нумерация 0001, 0002, 0003
+		taggedElem = filter(lambda e: e.LookupParameter('TagCode5').AsString() not in NONELIST, g)
+		if taggedElem:
+			tag5Value = taggedElem[0].LookupParameter('TagCode5').AsString()
 		else:
-			tv = max(USEDCode5) + 1
-			USEDCode5.append(tv)
-		tag5Value = str(tv)
+			i = 1
+			while i < max(USEDCode5):
+				if i not in USEDCode5:
+					tv = i
+					USEDCode5.append(tv)
+					break
+				i += 1
+			else:
+				tv = max(USEDCode5) + 1
+				USEDCode5.append(tv)
+			tag5Value = str(tv)
 
-	# уже задействованные буквы в группах
-	USEDCode6 = list(set([e.LookupParameter('TagCode6').AsString() for e in g if e.LookupParameter('TagCode6').AsString() not in NONELIST]))
-	
-	k = 0
-	for e in g:
-		# нумерация A, B, C, D...
-		tag5 = e.LookupParameter('TagCode5')
-		tag5Value = tag5Value.zfill(4)
-		tag5.Set(tag5Value)
+		# уже задействованные буквы в группах
+		USEDCode6 = list(set([e.LookupParameter('TagCode6').AsString() for e in g if e.LookupParameter('TagCode6').AsString() not in NONELIST]))
 		
-		tag6Value = ''
-		tag6 = e.LookupParameter('TagCode6')
-		if USEDCode6:
-			if tag6.AsString() not in USEDCode6:
-				n = 0
-				while n < literals.index(max(USEDCode6)):
-					if literals[n] not in USEDCode6:
+		k = 0
+		for e in g:
+			# нумерация A, B, C, D...
+			tag5 = e.LookupParameter('TagCode5')
+			tag5Value = tag5Value.zfill(4)
+			tag5.Set(tag5Value)
+			
+			tag6Value = ''
+			tag6 = e.LookupParameter('TagCode6')
+			if USEDCode6:
+				if tag6.AsString() not in USEDCode6:
+					n = 0
+					while n < literals.index(max(USEDCode6)):
+						if literals[n] not in USEDCode6:
+							tag6Value = literals[n]
+							USEDCode6.append(tag6Value)
+							break
+						n += 1
+					else:
+						n += 1
 						tag6Value = literals[n]
 						USEDCode6.append(tag6Value)
-						break
-					n += 1
-				else:
-					n += 1
-					tag6Value = literals[n]
-					USEDCode6.append(tag6Value)
-				tag6.Set(tag6Value)
-		else:
-			tag6Value = literals[k]
-			tag6.Set(tag6Value)
-			k += 1
-		
-		tag3Value = e.LookupParameter('TagCode3').AsString()
-		tag4Value = e.LookupParameter('TagCode4').AsString()
-		tag5Value = e.LookupParameter('TagCode5').AsString()
-		tag6Value = e.LookupParameter('TagCode6').AsString()
-		
-		tagsToStr = []
-		for i in [tag1Value, tag2Value, tag3Value, tag4Value, tag5Value, tag6Value]:
-			if i != None:
-				tagsToStr.append(i)
+					tag6.Set(tag6Value)
 			else:
-				tagsToStr.append('')
+				tag6Value = literals[k]
+				tag6.Set(tag6Value)
+				k += 1
+			
+			tag3Value = e.LookupParameter('TagCode3').AsString()
+			tag4Value = e.LookupParameter('TagCode4').AsString()
+			tag5Value = e.LookupParameter('TagCode5').AsString()
+			tag6Value = e.LookupParameter('TagCode6').AsString()
+			
+			tagsToStr = []
+			for i in [tag1Value, tag2Value, tag3Value, tag4Value, tag5Value, tag6Value]:
+				if i != None:
+					tagsToStr.append(i)
+				else:
+					tagsToStr.append('')
 
-		tagAllValue = '-'.join(tagsToStr)
-		tagAll = e.LookupParameter('TAG')
-		tagAll.Set(tagAllValue)
+			tagAllValue = '-'.join(tagsToStr[:5]) + tagsToStr[-1]
+			tagAll = e.LookupParameter('TAG')
+			tagAll.Set(tagAllValue)
 t.Commit()
 
-MessageBox.Show(str("OK"), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
+MessageBox.Show(str(len(allGroupsTag3)), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
 
