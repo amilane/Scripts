@@ -84,6 +84,7 @@ allGroupsTag3 = groupByTag3(allGroups)
 
 t = Transaction(doc, 'Setparameter')
 t.Start()
+
 for group in allGroupsTag3:
 	USEDCode5 = getUsedTag5(group)
 	for g in group:
@@ -150,6 +151,7 @@ for group in allGroupsTag3:
 			tagAllValue = '-'.join(tagsToStr[:5]) + tagsToStr[-1]
 			tagAll = e.LookupParameter('TAG')
 			tagAll.Set(tagAllValue)
+
 t.Commit()
 
 MessageBox.Show(str(len(allGroupsTag3)), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
