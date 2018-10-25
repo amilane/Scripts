@@ -52,7 +52,7 @@ elemsG = filter(lambda e: e.LookupParameter('GroupTag').AsString() not in NONELI
 and e.Symbol.LookupParameter('Element Type').AsString() not in NONELIST, elems)
 
 elemsGroupByTag = groupByParameter(elemsG, 'GroupTag')
-
+lol = []
 for group in elemsGroupByTag:
 
   uRange = worksheet.UsedRange
@@ -70,13 +70,17 @@ for group in elemsGroupByTag:
       signal.append(elem)
   if equip:
     equipTags = ['-'.join([CODE, e.LookupParameter('partition').AsString(), e.LookupParameter('Signal_designation').AsString(), e.LookupParameter('EQ_TAG').AsString()]) for e in equip]
-    a = Array.CreateInstance(str, len(equipTags))
-    xlEquipRange = worksheet.Range["A"+str(len(excelEquipTags)+1) + ":A"+str(len(excelEquipTags)+1+len(equipTags))]
-    for n, i in enumerate(equipTags):
-      a[n] = i
-    xlEquipRange.Value2 = a
+    lol.append(equipTags)
 
-#MessageBox.Show(str(equipTags), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
+  #a = Array.CreateInstance(str, len(equipTags))
+  a = Array[str](equipTags)
+  xlEquipRange = worksheet.Range["A"+str(len(excelEquipTags)+1) + ":A"+str(len(excelEquipTags)+len(equipTags))]
+  #for n, i in enumerate(equipTags):
+  #  a[n] = i
+  xlEquipRange.Value2 = a
+
+
+MessageBox.Show(str(lol), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
 workbook.Save
 workbook.Close(1)
 workbooks.Close()
