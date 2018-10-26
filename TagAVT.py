@@ -72,12 +72,9 @@ for group in elemsGroupByTag:
     equipTags = ['-'.join([CODE, e.LookupParameter('partition').AsString(), e.LookupParameter('Signal_designation').AsString(), e.LookupParameter('EQ_TAG').AsString()]) for e in equip]
     lol.append(equipTags)
 
-  #a = Array.CreateInstance(str, len(equipTags))
-  a = Array[str](equipTags)
-  xlEquipRange = worksheet.Range["A"+str(len(excelEquipTags)+1) + ":A"+str(len(excelEquipTags)+len(equipTags))]
-  #for n, i in enumerate(equipTags):
-  #  a[n] = i
-  xlEquipRange.Value2 = a
+a = Array[str](lol)
+xlEquipRange = worksheet.Range["A"+str(len(excelEquipTags)+1) + ":A"+str(len(excelEquipTags)+len(equipTags))]
+xlEquipRange.Value2 = a
 
 
 MessageBox.Show(str(lol), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
