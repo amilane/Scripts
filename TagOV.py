@@ -24,6 +24,9 @@ projInfo = doc.ProjectInformation
 tag1Value = projInfo.LookupParameter('TagCode1').AsString()
 tag2Value = projInfo.LookupParameter('TagCode2').AsString()
 
+def filterWithCode(l):
+	return list(filter(lambda x: x.LookupParameter('TagCode3').AsString() != None and x.LookupParameter('TagCode4').AsString() != None, l))
+
 def groupByFam(l):
 	# группировка по "Семейство и типоразмер"
 	sList = sorted(l, key = lambda e: e.get_Parameter(BuiltInParameter.ELEM_FAMILY_AND_TYPE_PARAM).AsValueString())
@@ -39,19 +42,10 @@ def groupBySize(gList):
 		gSize += gSG
 	return gSize
 
-def groupByTag4(gList):
-	# группировка по размерам TagCode4
-	gTag = []
-	for g in gList:
-		sG = sorted(g, key = lambda e: e.LookupParameter('TagCode4').AsString())
-		gSG = [[x for x in g] for k,g in groupby(sG, lambda e: e.LookupParameter('TagCode4').AsString())]
-		gTag += gSG
-	return gTag
-
-def groupByTag3(gList):
+def groupByTag3_4(gList):
 	# группировка по размерам TagCode3
-	sList = sorted(gList, key = lambda g: g[0].LookupParameter('TagCode3').AsString())
-	gList2 = [[x for x in g] for k,g in groupby(sList, lambda g: g[0].LookupParameter('TagCode3').AsString())]
+	sList = sorted(gList, key = lambda g: g[0].LookupParameter('TagCode3').AsString()+g[0].LookupParameter('TagCode4').AsString())
+	gList2 = [[x for x in g] for k,g in groupby(sList, lambda g: g[0].LookupParameter('TagCode3').AsString()+g[0].LookupParameter('TagCode4').AsString())]
 	return gList2
 
 def getUsedTag5(gList):
@@ -72,13 +66,13 @@ pipeAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Pip
 equipment = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements()
 
 
-gTerminal = groupBySize(groupByFam(terminal))
-gDuctAcc = groupBySize(groupByFam(ductAccessory))
-gPipeAcc = groupBySize(groupByFam(pipeAccessory))
-gEquip = groupByFam(equipment)
+gTerminal = groupBySize(groupByFam(filterWithCode(terminal)))
+gDuctAcc = groupBySize(groupByFam(filterWithCode(ductAccessory)))
+gPipeAcc = groupBySize(groupByFam(filterWithCode(pipeAccessory)))
+gEquip = groupByFam(filterWithCode(equipment))
 
 allGroups = gTerminal + gDuctAcc + gPipeAcc + gEquip
-allGroupsTag3 = groupByTag3(allGroups)
+allGroupsTag3 = groupByTag3_4(allGroups)
 
 
 
