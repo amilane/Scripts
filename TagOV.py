@@ -55,38 +55,24 @@ def getUsedTag5(gList):
 	else:
 		return [0]
 
+def groupBySys(l):
+	sList = sorted(l, key = lambda e: e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString())
+	gList = [[x for x in g] for k,g in groupby(sList, lambda e: e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString())]
+	return gList
 
-# воздухораспределители
-terminal = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctTerminal).WhereElementIsNotElementType().ToElements()
-# арматура
-ductAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctAccessory).WhereElementIsNotElementType().ToElements()
-# арматура труб
-pipeAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PipeAccessory).WhereElementIsNotElementType().ToElements()
-# оборудование
-equipment = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements()
+def groupDuctsBySizeAndThi(ducts):
+	ductsWithKeys = [[e, '-'.join([e.get_Parameter(BuiltInParameter.RBS_CALCULATED_SIZE).AsString(),\
+		e.get_Parameter(BuiltInParameter.CURVE_ELEM_LENGTH).AsValueString(),\
+		e.LookupParameter('AG_Thickness').AsValueString()])] for e in ducts]
+	sList = sorted(ductsWithKeys, key = lambda e: e[1])
+	gList = [[x[0] for x in g] for k,g in groupby(sList, lambda e: e[1])]
+	return gList
 
-
-gTerminal = groupBySize(groupByFam(filterWithCode(terminal)))
-gDuctAcc = groupBySize(groupByFam(filterWithCode(ductAccessory)))
-gPipeAcc = groupBySize(groupByFam(filterWithCode(pipeAccessory)))
-gEquip = groupByFam(filterWithCode(equipment))
-
-allGroups = gTerminal + gDuctAcc + gPipeAcc + gEquip
-allGroupsTag3 = groupByTag3_4(allGroups)
-
-
-
-t = Transaction(doc, 'Setparameter')
-t.Start()
-
-for group in allGroupsTag3:
-	USEDCode5 = getUsedTag5(group)
-	for g in group:
-		# нумерация 0001, 0002, 0003
-		taggedElem = filter(lambda e: e.LookupParameter('TagCode5').AsString() not in NONELIST, g)
-		if taggedElem:
-			tag5Value = taggedElem[0].LookupParameter('TagCode5').AsString()
-		else:
+def findTag5Value(g):
+	taggedElem = filter(lambda e: e.LookupParameter('TagCode5').AsString() not in NONELIST, g)
+	if taggedElem:
+		tag5Value = taggedElem[0].LookupParameter('TagCode5').AsString()
+	else:
 			i = 1
 			while i < max(USEDCode5):
 				if i not in USEDCode5:
@@ -98,6 +84,60 @@ for group in allGroupsTag3:
 				tv = max(USEDCode5) + 1
 				USEDCode5.append(tv)
 			tag5Value = str(tv)
+	return tag5Value
+
+def groupFitBySizeAndPartType(fittings):
+	fitWithKeys = []
+	lParNames = ('Length', 'Длина воздуховода', 'L')
+	for e in fittings:
+		a1 = str(e.MEPModel.PartType)
+		a2 = e.get_Parameter(BuiltInParameter.RBS_CALCULATED_SIZE).AsString()
+		try:
+			for p in lParNames:
+				a3 = e.LookupParameter(p).AsString()
+		except: a3 = ''
+		a4 = e.LookupParameter('AG_Thickness').AsValueString()
+		fitWithKeys.append([e, '-'.join([a1, a2, a3, a4])])
+	sList = sorted(fitWithKeys, key = lambda e: e[1])
+	gList = [[x[0] for x in g] for k,g in groupby(sList, lambda e: e[1])]
+	return gList
+
+# воздухораспределители
+terminal = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctTerminal).WhereElementIsNotElementType().ToElements()
+# арматура
+ductAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctAccessory).WhereElementIsNotElementType().ToElements()
+# арматура труб
+pipeAccessory = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PipeAccessory).WhereElementIsNotElementType().ToElements()
+# оборудование
+equipment = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements()
+
+# воздуховоды
+ducts = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctCurves).WhereElementIsNotElementType().ToElements()
+# гибкий воздуховод
+flexDuct = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_FlexDuctCurves).WhereElementIsNotElementType().ToElements()
+# соед детали воздуховодов
+fitings = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_DuctFitting).WhereElementIsNotElementType().ToElements()
+
+gTerminal = groupBySize(groupByFam(filterWithCode(terminal)))
+gDuctAcc = groupBySize(groupByFam(filterWithCode(ductAccessory)))
+gPipeAcc = groupBySize(groupByFam(filterWithCode(pipeAccessory)))
+gEquip = groupByFam(filterWithCode(equipment))
+
+allGroups = gTerminal + gDuctAcc + gPipeAcc + gEquip
+allGroupsTag3 = groupByTag3_4(allGroups)
+
+allDuctElems = list(ducts) + list(flexDuct) + list(fitings)
+groupDuctElemsBySys = groupBySys(allDuctElems)
+
+
+t = Transaction(doc, 'Setparameter')
+t.Start()
+# арматура труб, арматура воздуховодов, воздухораспределители, оборудование
+for group in allGroupsTag3:
+	USEDCode5 = getUsedTag5(group)
+	for g in group:
+		# нумерация 0001, 0002, 0003
+		tag5Value = findTag5Value(g)
 
 		# уже задействованные буквы в группах
 		USEDCode6 = list(set([e.LookupParameter('TagCode6').AsString() for e in g if e.LookupParameter('TagCode6').AsString() not in NONELIST]))
@@ -146,7 +186,43 @@ for group in allGroupsTag3:
 			tagAll = e.LookupParameter('TAG')
 			tagAll.Set(tagAllValue)
 
+
+# воздуховоды и фасонка
+for sysgroup in groupDuctElemsBySys:
+
+	USEDCode5 = list(set([int(e.LookupParameter('TagCode5').AsString()) for e in sysgroup if e.LookupParameter('TagCode5').AsString() not in NONELIST]))
+	if USEDCode5 == []:
+		USEDCode5 = [0]
+
+	ducts = filter(lambda e: e.Category.Id.IntegerValue == int(BuiltInCategory.OST_DuctCurves) or e.Category.Id.IntegerValue == int(BuiltInCategory.OST_FlexDuctCurves), sysgroup)
+	ductsBySizeAndThi = groupDuctsBySizeAndThi(ducts)
+
+	for g in ductsBySizeAndThi:
+		tag5Value = findTag5Value(g)
+		for e in g:
+				tag5 = e.LookupParameter('TagCode5')
+				tagAll = e.LookupParameter('TAG')
+				tag5Value = tag5Value.zfill(3)
+				tag5.Set(tag5Value)
+				sp = e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString()
+				tagAllValue = '-'.join([tag1Value, tag2Value, sp, tag5Value])
+				tagAll.Set(tagAllValue)
+
+	fittings = filter(lambda e: e.Category.Id.IntegerValue == int(BuiltInCategory.OST_DuctFitting), sysgroup)
+	fitBySize = groupFitBySizeAndPartType(fittings)
+
+	for g in fitBySize:
+		tag5Value = findTag5Value(g)
+		for e in g:
+				tag5 = e.LookupParameter('TagCode5')
+				tagAll = e.LookupParameter('TAG')
+				tag5Value = tag5Value.zfill(3)
+				tag5.Set(tag5Value)
+				tagAllValue = '-'.join([tag1Value, tag2Value, sp, tag5Value])
+				tagAll.Set(tagAllValue)
+
+
 t.Commit()
 
-MessageBox.Show(str(len(allGroupsTag3)), "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
+MessageBox.Show("OK", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
 
