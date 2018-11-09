@@ -205,7 +205,7 @@ for sysgroup in groupDuctElemsBySys:
 				tag5Value = tag5Value.zfill(3)
 				tag5.Set(tag5Value)
 				sp = e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString()
-				tagAllValue = '-'.join([tag1Value, tag2Value, sp, tag5Value])
+				tagAllValue = '/'.join([tag1Value, sp, tag5Value])
 				tagAll.Set(tagAllValue)
 
 	fittings = filter(lambda e: e.Category.Id.IntegerValue == int(BuiltInCategory.OST_DuctFitting), sysgroup)
@@ -218,7 +218,7 @@ for sysgroup in groupDuctElemsBySys:
 				tagAll = e.LookupParameter('TAG')
 				tag5Value = tag5Value.zfill(3)
 				tag5.Set(tag5Value)
-				tagAllValue = '-'.join([tag1Value, tag2Value, sp, tag5Value])
+				tagAllValue = '/'.join([tag1Value, sp, tag5Value])
 				tagAll.Set(tagAllValue)
 
 
