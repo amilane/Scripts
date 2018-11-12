@@ -90,14 +90,24 @@ def groupFitBySizeAndPartType(fittings):
 	fitWithKeys = []
 	lParNames = ('Length', 'Длина воздуховода', 'L')
 	for e in fittings:
-		a1 = str(e.MEPModel.PartType)
-		a2 = e.get_Parameter(BuiltInParameter.RBS_CALCULATED_SIZE).AsString()
-		try:
-			for p in lParNames:
-				a3 = e.LookupParameter(p).AsString()
-		except: a3 = ''
-		a4 = e.LookupParameter('AG_Thickness').AsValueString()
-		fitWithKeys.append([e, '-'.join([a1, a2, a3, a4])])
+		a1 = e.MEPModel.PartType
+		a2 = ''
+		a4 = ''
+		a6 = ''
+		a3 = e.get_Parameter(BuiltInParameter.RBS_CALCULATED_SIZE).AsString()
+		if a1 == PartType.Elbow:
+			cSet = [i for i in e.MEPModel.ConnectorManager.Connectors]
+			con = cSet[0]
+			a2 = str(int(round(math.degrees(con.Angle)/5.0))*5)
+		elif a1 == PartType.SpudAdjustable or a1 == PartType.TapAdjustable:
+			a6 = e.get_Parameter(BuiltInParameter.RBS_FAMILY_CONTENT_TAKEOFF_LENGTH).AsValueString()
+		elif a1 == PartType.Cap:
+			try:
+				for p in lParNames:
+					a4 = e.LookupParameter(p).AsString()
+			except: a4 = ''
+		a5 = e.LookupParameter('AG_Thickness').AsValueString()
+		fitWithKeys.append([e, '-'.join([str(a1), a2, a3, a4, a5, a6])])
 	sList = sorted(fitWithKeys, key = lambda e: e[1])
 	gList = [[x[0] for x in g] for k,g in groupby(sList, lambda e: e[1])]
 	return gList
@@ -200,13 +210,15 @@ for sysgroup in groupDuctElemsBySys:
 	for g in ductsBySizeAndThi:
 		tag5Value = findTag5Value(g)
 		for e in g:
-				tag5 = e.LookupParameter('TagCode5')
-				tagAll = e.LookupParameter('TAG')
-				tag5Value = tag5Value.zfill(3)
-				tag5.Set(tag5Value)
-				sp = e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString()
-				tagAllValue = '/'.join([tag1Value, sp, tag5Value])
-				tagAll.Set(tagAllValue)
+			tag5 = e.LookupParameter('TagCode5')
+			pos = e.LookupParameter('PL_Pos')
+			tagAll = e.LookupParameter('TAG')
+			tag5Value = tag5Value.zfill(3)
+			tag5.Set(tag5Value)
+			pos.Set(tag5Value)
+			sp = e.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString()
+			tagAllValue = '/'.join([tag1Value, sp, tag5Value])
+			tagAll.Set(tagAllValue)
 
 	fittings = filter(lambda e: e.Category.Id.IntegerValue == int(BuiltInCategory.OST_DuctFitting), sysgroup)
 	fitBySize = groupFitBySizeAndPartType(fittings)
@@ -214,12 +226,14 @@ for sysgroup in groupDuctElemsBySys:
 	for g in fitBySize:
 		tag5Value = findTag5Value(g)
 		for e in g:
-				tag5 = e.LookupParameter('TagCode5')
-				tagAll = e.LookupParameter('TAG')
-				tag5Value = tag5Value.zfill(3)
-				tag5.Set(tag5Value)
-				tagAllValue = '/'.join([tag1Value, sp, tag5Value])
-				tagAll.Set(tagAllValue)
+			tag5 = e.LookupParameter('TagCode5')
+			pos = e.LookupParameter('PL_Pos')
+			tagAll = e.LookupParameter('TAG')
+			tag5Value = tag5Value.zfill(3)
+			tag5.Set(tag5Value)
+			pos.Set(tag5Value)
+			tagAllValue = '/'.join([tag1Value, sp, tag5Value])
+			tagAll.Set(tagAllValue)
 
 
 t.Commit()
