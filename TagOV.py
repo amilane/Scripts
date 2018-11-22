@@ -13,11 +13,6 @@ from itertools import groupby
 clr.AddReference('RevitAPI')
 from Autodesk.Revit.DB import *
 
-clr.AddReference('System.Windows.Forms')
-clr.AddReference('System.Drawing')
-from System.Drawing import *
-from System.Windows.Forms import *
-
 NONELIST = [None, '', ' ']
 literals = string.ascii_uppercase
 projInfo = doc.ProjectInformation
@@ -237,6 +232,3 @@ for sysgroup in groupDuctElemsBySys:
 
 
 t.Commit()
-
-MessageBox.Show("OK", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Information)
-
