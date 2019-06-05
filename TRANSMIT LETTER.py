@@ -5,7 +5,7 @@ from PyPDF2 import PdfFileReader
 
 
 # Укажите имя папки выпуска, например 0055-P2-ARM-CPC-TRM-00000
-number = '0055-P2-ARM-CPC-TRM-11111'
+number = '0055-P2-ARM-CPC-TRM-33333'
 
 
 
@@ -112,6 +112,7 @@ for folder in folders:
   os.chdir(pathToFolder)
   files = os.listdir()
   pdfs = list(filter(lambda f: '.pdf' in f, files))
+  native = list(filter(lambda f: '.pdf' not in f, files))
   for pd in pdfs:
     language = pd.split('_')[-1].split('.')[0]
     packageCode = pd.split('-')[4]
@@ -126,7 +127,12 @@ for folder in folders:
       if formatPage not in formats:
         formats.append(formatPage)
     sheetFormat = '/'.join(formats)
-    dwg = pd.replace('.pdf', '.dwg')
+    fName = pd.replace('.pdf', '')
+    dwgFind = list(filter(lambda n: fName in n, native))
+    if dwgFind == []:
+      dwg = pd
+    else:
+      dwg = dwgFind[0]
 
 
     try:
